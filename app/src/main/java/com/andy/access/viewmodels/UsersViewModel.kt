@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.andy.access.api.GithubService
+import com.andy.access.model.UserDetail
 import com.andy.access.model.User
 import io.reactivex.SingleObserver
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -23,7 +24,13 @@ class UsersViewModel : ViewModel() {
         }
     }
 
+    private val userDetail: MutableLiveData<UserDetail> by lazy {
+        MutableLiveData<UserDetail>()
+    }
+
     fun getUsers(): LiveData<List<User>> = users
+
+    fun getUserDetail(): LiveData<UserDetail> = userDetail
 
     fun loadMore() {
         if (!isLastPage) {
@@ -60,6 +67,24 @@ class UsersViewModel : ViewModel() {
 
                 override fun onError(e: Throwable) {
                     isLoading = false
+                }
+            })
+    }
+
+    fun loadUserDetail(name: String) {
+        GithubService.create().getUserDetail(name)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : SingleObserver<Response<UserDetail>> {
+
+                override fun onSubscribe(d: Disposable) {
+                }
+
+                override fun onSuccess(response: Response<UserDetail>) {
+                    userDetail.value = response.body()
+                }
+
+                override fun onError(e: Throwable) {
                 }
             })
     }

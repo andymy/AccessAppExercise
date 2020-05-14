@@ -1,5 +1,6 @@
 package com.andy.access.api
 
+import com.andy.access.model.UserDetail
 import com.andy.access.model.User
 import io.reactivex.Single
 import okhttp3.OkHttpClient
@@ -8,6 +9,7 @@ import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
@@ -18,6 +20,9 @@ interface GithubService {
         @Query("since") since: Int = 0,
         @Query("per_page") per_page: Int = 20
     ): Single<Response<List<User>>>
+
+    @GET("/users/{userName}")
+    fun getUserDetail(@Path("userName") userName: String?): Single<Response<UserDetail>>
 
     companion object {
 
