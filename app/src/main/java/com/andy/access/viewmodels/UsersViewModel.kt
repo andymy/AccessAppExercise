@@ -13,29 +13,78 @@ import retrofit2.Response
 
 class UsersViewModel : ViewModel() {
 
+    var isLastPage: Boolean = false
+    var isLoading: Boolean = false
+    private var nextSince = 0
+
     private val users: MutableLiveData<List<User>> by lazy {
         MutableLiveData<List<User>>().also {
-            loadUsers()
+            loadUsers(0)
         }
     }
 
     fun getUsers(): LiveData<List<User>> = users
 
-    private fun loadUsers() {
-        GithubService.create().getUsers()
+    fun loadMore() {
+        if (!isLastPage) {
+            loadUsers(nextSince)
+        }
+    }
+
+    private fun loadUsers(since: Int) {
+        GithubService.create().getUsers(since)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(object : SingleObserver<Response<List<User>>> {
 
                 override fun onSubscribe(d: Disposable) {
+                    isLoading = true
                 }
 
                 override fun onSuccess(response: Response<List<User>>) {
-                    users.value = response.body()
+                    nextSince = response.getLindHeader()?.parseNextSince() ?: 0
+
+                    val userResponseList = response.body().orEmpty()
+                    if (users.value.isNullOrEmpty()) {
+                        users.value = userResponseList
+                    } else {
+                        val moreUserList = users.value.orEmpty().toMutableList()
+                        moreUserList.addAll(userResponseList)
+                        if (moreUserList.size >= 100) {
+                            isLastPage = true
+                        }
+                        users.value = moreUserList
+                    }
+                    isLoading = false
                 }
 
                 override fun onError(e: Throwable) {
+                    isLoading = false
                 }
             })
+    }
+
+    private fun Response<List<User>>.getLindHeader(): String? {
+        return this.headers().get("link").also {
+            println("linkHeader=$it")
+        }
+    }
+
+    private fun String.parseNextSince(): Int {
+        fun String.parseSince(): Int {
+            val sinceIndex = this.indexOf("since")
+            val startIndex = this.indexOf("=", sinceIndex) + 1
+            val endIndex = this.indexOf("&", sinceIndex)
+            return this.subSequence(startIndex, endIndex).toString().toInt()
+        }
+
+        this.split(",").forEach { string ->
+            if (string.contains("next")) {
+                return string.parseSince().also {
+                    println("nextSince=$it")
+                }
+            }
+        }
+        return 0
     }
 }

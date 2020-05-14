@@ -16,7 +16,7 @@ interface GithubService {
     @GET("users")
     fun getUsers(
         @Query("since") since: Int = 0,
-        @Query("per_page") per_page: Int = 100
+        @Query("per_page") per_page: Int = 20
     ): Single<Response<List<User>>>
 
     companion object {
